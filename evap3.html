@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EVAP Solar - Smart Charging Station</title>
+  <style>
+    :root {
+      --bg1: #ffffff;
+      --bg2: #f5f5f7;
+      --primary-blue: #000000;
+      --accent-orange: #333333;
+      --evap-green: #000000;
+      --muted: #666666;
+      --glass: rgba(255,255,255,0.8);
+      --text-primary: #000000;
+      --card-bg: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+      --card-border: 1px solid rgba(0,0,0,0.08);
+      --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      --shadow: 0 10px 40px rgba(0,0,0,0.08);
+      --shadow-hover: 0 15px 50px rgba(0,0,0,0.12);
+    }
+
+    /* Dark theme variables */
+    [data-theme="dark"] {
+      --bg1: #121212;
+      --bg2: #1e1e1e;
+      --text-primary: #ffffff;
+      --muted: #aaaaaa;
+      --glass: rgba(255,255,255,0.05);
+      --card-bg: linear-gradient(180deg, rgba(30,30,30,0.9), rgba(25,25,25,0.8));
+      --card-border: 1px solid rgba(255,255,255,0.08);
+      --shadow: 0 10px 40px rgba(0,0,0,0.3);
+      --shadow-hover: 0 15px 50px rgba(0,0,0,0.4);
+    }
+
+    /* Page / Reset */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(200,200,200,0.15), transparent 10%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text-primary);
+      overflow-x: hidden;
+      transition: background 0.3s ease;
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      background: var(--glass);
+      border: var(--card-border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Solar energy storage display */
+    .solar-storage {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+      background: var(--glass);
+      border: var(--card-border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      backdrop-filter: blur(10px);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .solar-storage:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .solar-icon {
+      font-size: 24px;
+      color: var(--evap-green);
+    }
+
+    .storage-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .storage-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .storage-value {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--evap-green);
+    }
+
+    /* Enhanced background animations */
+    .bg-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      display: block;
+      overflow: hidden;
+    }
+
+    /* Big soft vignette */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(60% 50% at 30% 40%, rgba(255,255,255,0.6), transparent 20%),
+                  linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.6));
+      mix-blend-mode: soft-light;
+    }
+
+    [data-theme="dark"] .vignette {
+      background: radial-gradient(60% 50% at 30% 40%, rgba(0,0,0,0.6), transparent 20%),
+                  linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.6));
+      mix-blend-mode: multiply;
+    }
+
+    /* Enhanced floating particles */
+    .floating-particles {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.1);
+      animation: float 15s infinite linear;
+    }
+
+    [data-theme="dark"] .particle {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0) translateX(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+    }
+
+    /* Background image transitions */
+    .bg-images {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .bg-image {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.5s ease-in-out;
+    }
+
+    .bg-image.active {
+      opacity: 0.15;
+    }
+
+    /* Charging animation effects */
+    .charging-effects {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    .charging-effects.active {
+      opacity: 1;
+    }
+
+    .energy-pulse {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.05) 0%, transparent 70%);
+      animation: pulse 3s infinite alternate;
+    }
+
+    [data-theme="dark"] .energy-pulse {
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.3; }
+      100% { transform: scale(1.1); opacity: 0.6; }
+    }
+
+    .energy-stream {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.1) 0%, transparent 70%);
+      transform: translateX(-50%);
+      animation: stream 4s infinite alternate;
+    }
+
+    [data-theme="dark"] .energy-stream {
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    }
+
+    @keyframes stream {
+      0% { transform: translateX(-50%) scaleY(0.8); opacity: 0.3; }
+      100% { transform: translateX(-50%) scaleY(1); opacity: 0.7; }
+    }
+
+    /* Fullscreen start screen */
+    .start-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      transition: opacity 0.8s ease;
+    }
+
+    [data-theme="dark"] .start-screen {
+      background: rgba(18, 18, 18, 0.95);
+    }
+
+    .start-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .logo-container {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      font-size: 64px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #000000, #333333);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+      letter-spacing: -2px;
+    }
+
+    [data-theme="dark"] .logo {
+      background: linear-gradient(90deg, #ffffff, #aaaaaa);
+      -webkit-background-clip: text;
+    }
+
+    .tagline {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .start-btn {
+      background: linear-gradient(90deg, #000000, #333333);
+      color: #ffffff;
+      font-weight: 800;
+      padding: 20px 50px;
+      border-radius: 50px;
+      font-size: 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      border: none;
+      cursor: pointer;
+      transform: translateY(0);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    [data-theme="dark"] .start-btn {
+      background: linear-gradient(90deg, #ffffff, #aaaaaa);
+      color: #000000;
+      box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+    }
+
+    .start-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.7s;
+    }
+
+    [data-theme="dark"] .start-btn::before {
+      background: linear-gradient(90deg, transparent, rgba(0,0,0,0.3), transparent);
+    }
+
+    .start-btn:hover::before {
+      left: 100%;
+    }
+
+    .start-btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .start-btn:hover {
+      box-shadow: 0 15px 40px rgba(255, 255, 255, 0.3);
+    }
+
+    .start-btn:active {
+      transform: translateY(2px);
+    }
+
+    /* Welcome animation */
+    .welcome-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(15px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    [data-theme="dark"] .welcome-container {
+      background: rgba(18, 18, 18, 0.9);
+    }
+
+    .welcome-container.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .welcome-text {
+      font-size: 48px;
+      font-weight: 700;
+      text-align: center;
+      color: var(--text-primary);
+    }
+
+    .welcome-word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateX(100px);
+    }
+
+    /* Main app container */
+    .app {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    .app.active {
+      opacity: 1;
+    }
+
+    .card {
+      width: 1080px;
+      max-width: calc(100% - 80px);
+      min-height: 600px;
+      border-radius: 22px;
+      background: var(--card-bg);
+      box-shadow: var(--shadow), 
+                  inset 0 1px 0 rgba(255,255,255,0.1);
+      border: var(--card-border);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      transform: scale(0.95);
+      transition: var(--transition);
+    }
+
+    .card.active {
+      transform: scale(1);
+    }
+
+    /* Left and right panes */
+    .left, .right {
+      padding: 36px;
+      transition: var(--transition);
+    }
+
+    .left {
+      width: 48%;
+      border-right: 1px solid rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      justify-content: center;
+    }
+
+    [data-theme="dark"] .left {
+      border-right: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .right {
+      width: 52%;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 40px;
+      margin: 0;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+
+    .accent {
+      color: var(--accent-orange);
+      font-weight: 700;
+    }
+
+    p.lead {
+      color: var(--muted);
+      margin: 8px 0 0 0;
+      font-size: 15px;
+      max-width: 520px;
+    }
+
+    /* Charging UI elements */
+    .panel {
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 18px;
+      border: var(--card-border);
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .panel.hidden {
+      display: none;
+    }
+
+    /* Eject charger section */
+    .eject {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .charger {
+      width: 86px;
+      height: 86px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(255,255,255,0.02));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: var(--card-border);
+    }
+
+    [data-theme="dark"] .charger {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));
+    }
+
+    .eject-btn {
+      background: linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
+      border: var(--card-border);
+      color: var(--primary-blue);
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: var(--transition);
+    }
+
+    [data-theme="dark"] .eject-btn {
+      background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    }
+
+    .eject-btn:hover {
+      background: linear-gradient(90deg, rgba(0,0,0,0.1), rgba(0,0,0,0.05));
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    [data-theme="dark"] .eject-btn:hover {
+      background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+    }
+
+    .eject-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* kW slider section */
+    .slider-container {
+      margin-top: 20px;
+    }
+
+    .slider-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .required-kw {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .kw-display {
+      font-weight: 800;
+      font-size: 24px;
+      color: var(--primary-blue);
+    }
+
+    .slider-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: transparent;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      background: linear-gradient(90deg, var(--primary-blue), var(--accent-orange));
+      border-radius: 6px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3), 0 0 12px rgba(0,0,0,0.15);
+      margin-top: -7px;
+      cursor: pointer;
+    }
+
+    [data-theme="dark"] input[type="range"]::-webkit-slider-thumb {
+      background: #000;
+      box-shadow: 0 6px 18px rgba(255,255,255,0.3), 0 0 12px rgba(255,255,255,0.15);
+    }
+
+    .values {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .value-box {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--glass);
+      border: var(--card-border);
+      min-width: 120px;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .value-box:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Energy source display */
+    .energy-sources {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .energy-source {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .bolt {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #fff;
+      font-size: 24px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    .bolt.green {
+      background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.06));
+      border: 1px solid rgba(0,0,0,0.25);
+      color: #000;
+      filter: drop-shadow(0 0 8px rgba(0,0,0,0.12));
+    }
+
+    [data-theme="dark"] .bolt.green {
+      background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.12));
+    }
+
+    .bolt.white {
+      background: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.01));
+      border: 1px solid rgba(0,0,0,0.04);
+      color: #000;
+      filter: drop-shadow(0 0 8px rgba(0,0,0,0.06));
+    }
+
+    [data-theme="dark"] .bolt.white {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.04);
+      color: #fff;
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.06));
+    }
+
+    .energy-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .energy-label {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .energy-amount {
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .total-amount {
+      text-align: right;
+    }
+
+    .total-label {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .total-value {
+      font-weight: 900;
+      font-size: 22px;
+      color: var(--accent-orange);
+    }
+
+    /* Pay button */
+    .pay-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+
+    .pay-btn {
+      background: linear-gradient(180deg, var(--primary-blue), #333333);
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+      transition: var(--transition);
+    }
+
+    [data-theme="dark"] .pay-btn {
+      background: linear-gradient(180deg, #ffffff, #aaaaaa);
+      color: #000000;
+      box-shadow: 0 8px 30px rgba(255,255,255,0.1);
+    }
+
+    .pay-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    }
+
+    [data-theme="dark"] .pay-btn:hover {
+      box-shadow: 0 12px 40px rgba(255,255,255,0.2);
+    }
+
+    /* Enhanced Charging Animation Window */
+    .charging-animation-window {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    [data-theme="dark"] .charging-animation-window {
+      background: rgba(18, 18, 18, 0.95);
+    }
+
+    .charging-animation-window.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Charging Animation Stages */
+    .charging-stage {
+      position: absolute;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    
+    .charging-stage.active { 
+      opacity: 1; 
+    }
+
+    /* Step 1: Words */
+    .words {
+      font-size: 3em;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      color: var(--text-primary);
+    }
+    
+    .constant { 
+      color: var(--text-primary); 
+    }
+    
+    .flipper {
+      display: inline-block;
+      color: var(--text-primary);
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+    
+    .flip-up { 
+      transform: rotateX(-90deg); 
+      opacity: 0; 
+    }
+    
+    .show { 
+      transform: rotateX(0deg); 
+      opacity: 1; 
+    }
+
+    /* Step 2: Tick */
+    .tick-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .tick {
+      width: 100px;
+      height: 100px;
+      border: 4px solid var(--text-primary);
+      border-radius: 50%;
+      margin: auto;
+      position: relative;
+      transform: scale(0);
+      animation: tickPop 0.5s forwards;
+    }
+    
+    .tick::after {
+      content: "";
+      position: absolute;
+      width: 40px;
+      height: 20px;
+      border-left: 6px solid var(--text-primary);
+      border-bottom: 6px solid var(--text-primary);
+      transform: rotate(-45deg);
+      top: 35px;
+      left: 28px;
+      opacity: 0;
+      animation: tickCheck 0.5s forwards 0.5s;
+    }
+    
+    .tick-text {
+      margin-top: 15px;
+      font-size: 1.5em;
+      opacity: 0;
+      animation: textFade 0.5s forwards 0.7s;
+    }
+
+    /* Tick animations */
+    @keyframes tickPop {
+      to { transform: scale(1); }
+    }
+    
+    @keyframes tickCheck {
+      to { opacity: 1; }
+    }
+    
+    @keyframes textFade {
+      to { opacity: 1; }
+    }
+
+    /* Step 3: Battery */
+    .battery-container {
+      margin-top: 30px;
+    }
+    
+    .battery {
+      width: 180px;
+      height: 70px;
+      border: 4px solid var(--text-primary);
+      margin: auto;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg2);
+    }
+    
+    .battery::after {
+      content: "";
+      position: absolute;
+      top: 22px;
+      right: -15px;
+      width: 12px;
+      height: 28px;
+      background: var(--text-primary);
+      border-radius: 3px;
+    }
+    
+    .charge {
+      height: 100%;
+      width: 0%;
+      background: var(--text-primary);
+      border-radius: 4px;
+      transition: width 4s linear;
+    }
+
+    /* Enhanced Charging progress dashboard */
+    .charging-dashboard {
+      width: 100%;
+      display: none;
+      gap: 14px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .charging-dashboard.active {
+      display: flex;
+    }
+
+    .meter {
+      width: 100%;
+      height: 18px;
+      background: rgba(0,0,0,0.04);
+      border-radius: 9px;
+      overflow: hidden;
+      border: var(--card-border);
+    }
+
+    [data-theme="dark"] .meter {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .meter > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary-blue), var(--accent-orange));
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08), 
+                  inset 0 0 16px rgba(0,0,0,0.06);
+      transition: width 0.5s ease;
+    }
+
+    [data-theme="dark"] .meter > i {
+      box-shadow: 0 8px 30px rgba(255,255,255,0.08), 
+                  inset 0 0 16px rgba(255,255,255,0.06);
+    }
+
+    .stat-row {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      flex: 1;
+      background: var(--glass);
+      padding: 12px;
+      border-radius: 10px;
+      border: var(--card-border);
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .stat:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Popup overlays */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup {
+      width: 360px;
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 18px;
+      border: var(--card-border);
+      text-align: center;
+      transform: scale(0.9);
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+
+    .popup.active {
+      transform: scale(1);
+    }
+
+    /* Loading animation */
+    .loading {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    [data-theme="dark"] .loading {
+      background: rgba(18, 18, 18, 0.8);
+    }
+
+    .loader {
+      width: 60px;
+      height: 60px;
+      border: 5px solid rgba(0, 0, 0, 0.2);
+      border-radius: 50%;
+      border-top: 5px solid var(--primary-blue);
+      animation: spin 1s linear infinite;
+    }
+
+    [data-theme="dark"] .loader {
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-top: 5px solid #ffffff;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: 20px;
+      font-size: 18px;
+      color: var(--primary-blue);
+      font-weight: 600;
+    }
+
+    [data-theme="dark"] .loading-text {
+      color: #ffffff;
+    }
+
+    /* Completion screen */
+    .completion-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    [data-theme="dark"] .completion-screen {
+      background: rgba(18, 18, 18, 0.95);
+    }
+
+    .completion-screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .completion-content {
+      text-align: center;
+      max-width: 600px;
+      padding: 40px;
+    }
+
+    .completion-title {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      background: linear-gradient(90deg, #000000, #333333);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    [data-theme="dark"] .completion-title {
+      background: linear-gradient(90deg, #ffffff, #aaaaaa);
+      -webkit-background-clip: text;
+    }
+
+    .completion-message {
+      font-size: 22px;
+      margin-bottom: 30px;
+      color: var(--muted);
+    }
+
+    .carbon-savings {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--evap-green);
+      margin-bottom: 40px;
+    }
+
+    .restart-btn {
+      background: linear-gradient(90deg, #000000, #333333);
+      color: #ffffff;
+      font-weight: 800;
+      padding: 16px 40px;
+      border-radius: 50px;
+      font-size: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    [data-theme="dark"] .restart-btn {
+      background: linear-gradient(90deg, #ffffff, #aaaaaa);
+      color: #000000;
+      box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+    }
+
+    .restart-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .restart-btn:hover {
+      box-shadow: 0 15px 40px rgba(255, 255, 255, 0.3);
+    }
+
+    /* Enhanced background with subtle geometric patterns */
+    .geometric-bg {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      opacity: 0.03;
+    }
+
+    .geometric-shape {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--primary-blue);
+      animation: floatGeometric 20s infinite linear;
+    }
+
+    @keyframes floatGeometric {
+      0% { transform: translateY(0) translateX(0) rotate(0deg); }
+      100% { transform: translateY(-100vh) translateX(100px) rotate(360deg); }
+    }
+
+    /* Enhanced QR Code Design */
+    .qr-enhanced {
+      width: 220px;
+      height: 220px;
+      margin: 16px auto;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05);
+      border: var(--card-border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    [data-theme="dark"] .qr-enhanced {
+      background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+    }
+
+    .qr-enhanced::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(0,0,0,0.03), transparent);
+      transform: rotate(45deg);
+      animation: shine 3s infinite;
+    }
+
+    [data-theme="dark"] .qr-enhanced::before {
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.03), transparent);
+    }
+
+    @keyframes shine {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    /* Status section styling */
+    .status-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    [data-theme="dark"] .status-section {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .status-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-label {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .status-value {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .station-id {
+      text-align: right;
+    }
+
+    .demo-notice {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      padding: 10px 0;
+      font-style: italic;
+    }
+
+    /* Responsive design */
+    @media (max-width: 980px) {
+      .card {
+        flex-direction: column;
+        min-height: 720px;
+      }
+      
+      .left, .right {
+        width: 100%;
+        border-right: 0;
+      }
+      
+      .right {
+        padding: 28px 24px;
+      }
+      
+      .logo {
+        font-size: 48px;
+      }
+      
+      .start-btn {
+        padding: 16px 40px;
+        font-size: 18px;
+      }
+      
+      .words {
+        font-size: 2.5em;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .app {
+        padding: 20px;
+      }
+      
+      .card {
+        max-width: calc(100% - 40px);
+      }
+      
+      .left, .right {
+        padding: 24px;
+      }
+      
+      h1 {
+        font-size: 32px;
+      }
+      
+      .values {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .value-box {
+        min-width: auto;
+      }
+      
+      .energy-sources {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+      }
+      
+      .total-amount {
+        text-align: center;
+      }
+      
+      .words {
+        font-size: 2em;
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Theme toggle -->
+<div class="theme-toggle" id="themeToggle">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16Z" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 2V4" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 20V22" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M4.93 4.93L6.34 6.34" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M17.66 17.66L19.07 19.07" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M2 12H4" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 12H22" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M6.34 17.66L4.93 19.07" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M19.07 4.93L17.66 6.34" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<!-- Solar energy storage display -->
+<div class="solar-storage" id="solarStorage">
+  <div class="solar-icon">☀️</div>
+  <div class="storage-details">
+    <div class="storage-label">Solar Energy Stored</div>
+    <div class="storage-value" id="solarStorageValue">30 kW</div>
+  </div>
+</div>
+
+<!-- Loading animation -->
+<div class="loading" id="loading">
+  <div class="loader"></div>
+  <div class="loading-text">Initializing station...</div>
+</div>
+
+<!-- Fullscreen start screen -->
+<div class="start-screen" id="startScreen">
+  <div class="logo-container">
+    <div class="logo">EVAP SOLAR</div>
+    <div class="tagline">Smart Charging Solutions for a Sustainable Future</div>
+  </div>
+  <button class="start-btn" id="bigStart">START CHARGING</button>
+</div>
+
+<!-- Welcome animation -->
+<div class="welcome-container" id="welcomeContainer">
+  <div class="welcome-text" id="welcomeText">
+    <span class="welcome-word">Welcome</span>
+    <span class="welcome-word">to</span>
+    <span class="welcome-word">EVAP</span>
+    <span class="welcome-word">Solar</span>
+    <span class="welcome-word">Charging</span>
+    <span class="welcome-word">Station</span>
+  </div>
+</div>
+
+<!-- Charging Animation Window -->
+<div class="charging-animation-window" id="chargingAnimationWindow">
+  <!-- Stage 1: Words -->
+  <div class="charging-stage active" id="stage1">
+    <div class="words">
+      <div class="constant">EVAP</div>
+      <div class="flipper" id="flipper">SOLAR</div>
+    </div>
+  </div>
+
+  <!-- Stage 2: Tick -->
+  <div class="charging-stage" id="stage2">
+    <div class="tick-container">
+      <div class="tick"></div>
+      <div class="tick-text">Payment Complete</div>
+    </div>
+  </div>
+
+  <!-- Stage 3: Battery -->
+  <div class="charging-stage" id="stage3">
+    <div class="battery-container">
+      <div class="battery"><div class="charge" id="charge"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Completion screen -->
+<div class="completion-screen" id="completionScreen">
+  <div class="completion-content">
+    <div class="completion-title">Charging Complete!</div>
+    <div class="completion-message">Thank you for using EVAP Solar Charging Station</div>
+    <div class="carbon-savings" id="carbonSavings">Carbon Emission Saved: 0 kg</div>
+    <button class="restart-btn" id="restartBtn">CHARGE ANOTHER VEHICLE</button>
+  </div>
+</div>
+
+<!-- Background images section -->
+<div class="bg-images" id="bgImages">
+  <!-- Add your background images here with class "bg-image" -->
+  <!-- Example: <div class="bg-image" style="background-image: url('solar-panel-field.jpg')"></div> -->
+  <!-- Example: <div class="bg-image" style="background-image: url('electric-car-charging.jpg')"></div> -->
+  <!-- Example: <div class="bg-image" style="background-image: url('sustainable-energy.jpg')"></div> -->
+</div>
+
+<!-- Charging effects -->
+<div class="charging-effects" id="chargingEffects">
+  <div class="energy-pulse"></div>
+  <div class="energy-stream"></div>
+</div>
+
+<!-- Enhanced background with geometric patterns -->
+<div class="bg-wrap" aria-hidden="true">
+  <div class="geometric-bg" id="geometricBg"></div>
+  <div class="vignette"></div>
+  <div class="floating-particles" id="floatingParticles"></div>
+</div>
+
+<!-- Main app -->
+<div class="app" id="app">
+  <div class="card" id="mainCard">
+    <!-- LEFT: text + main start -->
+    <div class="left">
+      <h1>Solar Charge Station <span class="accent">Monitor</span></h1>
+      <p class="lead">Monitor and manage the charging process with green (solar) and grid energy split. Adjust desired kilowatts and pay securely — animated and intuitive interface.</p>
+
+      <!-- EJECT & CHARGE PANEL (hidden initially) -->
+      <div id="chargePanel" class="panel hidden">
+        <div class="eject">
+          <div class="charger">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <path d="M8 2h6v2" stroke="#000000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+              <rect x="4" y="4" width="14" height="14" rx="3" stroke="#000000" stroke-width="1.4"/>
+              <path d="M10 8v6l3-2" stroke="#000000" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight:700">Please eject charger from vehicle</div>
+            <div class="muted" style="margin-top:6px">Make sure the connector is unplugged and ready.</div>
+            <div style="margin-top:12px">
+              <button id="ejectBtn" class="eject-btn">EJECT</button>
+            </div>
+          </div>
+        </div>
+
+        <hr style="margin:16px 0; border:0; height:1px; background:rgba(0,0,0,0.05)">
+
+        <!-- kW Slider -->
+        <div class="slider-container">
+          <div class="slider-header">
+            <div class="required-kw">Vehicle requires: <span id="requiredKW" class="kw-display">0 kW</span></div>
+            <div class="muted">Adjustable range: 1-<span id="maxKW">15</span> kW</div>
+          </div>
+          <div class="slider-row">
+            <input id="kwRange" type="range" min="1" max="15" step="1" value="8" aria-label="kilowatt slider">
+          </div>
+
+          <div class="values">
+            <div class="value-box">Requested: <div style="font-weight:800; font-size:18px" id="kwValue">8 kW</div></div>
+            <div class="value-box">Solar (green): <div id="solarKW" style="font-weight:800;font-size:18px">-/kW</div></div>
+            <div class="value-box">Grid (white): <div id="gridKW" style="font-weight:800;font-size:18px">-/kW</div></div>
+          </div>
+
+          <div class="energy-sources">
+            <div class="energy-source">
+              <div class="bolt green">⚡</div>
+              <div class="energy-details">
+                <div class="energy-label">Solar Amount</div>
+                <div id="solarAmount" class="energy-amount">₹0.00</div>
+              </div>
+            </div>
+
+            <div class="energy-source">
+              <div class="bolt white">⚡</div>
+              <div class="energy-details">
+                <div class="energy-label">Grid Amount</div>
+                <div id="gridAmount" class="energy-amount">₹0.00</div>
+              </div>
+            </div>
+
+            <div class="total-amount">
+              <div class="total-label">TOTAL</div>
+              <div id="totalAmount" class="total-value">₹0.00</div>
+            </div>
+          </div>
+
+          <div class="pay-row">
+            <button id="enterBtn" class="pay-btn">PAY NOW</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard (shown after charging completes) -->
+      <div id="finalDashboard" class="panel hidden">
+        <div style="font-weight:800; font-size:18px">Charging Complete</div>
+        <div style="margin-top:12px">Your vehicle has been successfully charged.</div>
+        <div class="stat-row" style="margin-top:12px">
+          <div class="stat">
+            <div class="muted">Total Energy Delivered</div>
+            <div style="font-size:22px;font-weight:800" id="delivered">0 kWh</div>
+          </div>
+          <div class="stat">
+            <div class="muted">Split (Solar / Grid)</div>
+            <div style="font-size:18px;font-weight:700" id="avgSplit">-</div>
+          </div>
+          <div class="stat">
+            <div class="muted">Total Cost</div>
+            <div style="font-size:22px;font-weight:800" id="totalCost">₹0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: visual area with car, QR popup, progress -->
+    <div class="right">
+      <!-- Status section -->
+      <div class="status-section">
+        <div class="status-info">
+          <div class="status-label">Charger Status</div>
+          <div class="status-value" id="chargerStatus">Ready to Start</div>
+        </div>
+        <div class="station-id">
+          <div class="status-label">Station ID</div>
+          <div class="status-value">ST-049</div>
+        </div>
+      </div>
+
+      <!-- Demo notice -->
+      <div class="demo-notice">Preview demo only — no real payment taken</div>
+
+      <!-- Charging progress area (shown after payment) -->
+      <div id="chargingArea" class="charging-dashboard">
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <div>
+            <div class="muted">Charging</div>
+            <div style="font-weight:900; font-size:20px" id="chargingPower">0 kW</div>
+          </div>
+          <div style="text-align:right">
+            <div class="muted">Time left</div>
+            <div style="font-weight:900; font-size:20px" id="timeLeft">--:--</div>
+          </div>
+        </div>
+
+        <div style="width:100%; margin-top:12px">
+          <div class="meter"><i id="meterFill"></i></div>
+          <div style="display:flex; justify-content:space-between; margin-top:8px;">
+            <div class="muted">0%</div>
+            <div class="muted">100%</div>
+          </div>
+          <div class="stat-row" style="margin-top:12px">
+            <div class="stat">
+              <div class="muted">Solar (kW)</div>
+              <div id="dashSolar" style="font-weight:800">0</div>
+            </div>
+            <div class="stat">
+              <div class="muted">Grid (kW)</div>
+              <div id="dashGrid" style="font-weight:800">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- overlay popup for QR -->
+      <div class="overlay" id="overlay">
+        <div class="popup" role="dialog" aria-modal="true">
+          <div style="font-weight:900; font-size:20px">Scan & Pay</div>
+          <div class="muted" style="margin-top:6px">Amount to pay</div>
+          <div style="font-weight:800; font-size:22px; margin-top:8px" id="payAmountText">₹0.00</div>
+          <div class="qr-enhanced" id="qrCanvasWrap"></div>
+          <div style="display:flex; gap:10px; justify-content:center">
+            <button id="confirmPay" class="pay-btn">CONFIRM PAYMENT</button>
+            <button id="cancelPay" class="eject-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // DOM Elements
+  const bigStart = document.getElementById('bigStart');
+  const startScreen = document.getElementById('startScreen');
+  const welcomeContainer = document.getElementById('welcomeContainer');
+  const welcomeText = document.getElementById('welcomeText');
+  const app = document.getElementById('app');
+  const mainCard = document.getElementById('mainCard');
+  const chargePanel = document.getElementById('chargePanel');
+  const ejectBtn = document.getElementById('ejectBtn');
+  const requiredKW = document.getElementById('requiredKW');
+  const maxKW = document.getElementById('maxKW');
+  const kwRange = document.getElementById('kwRange');
+  const kwValue = document.getElementById('kwValue');
+  const solarKW = document.getElementById('solarKW');
+  const gridKW = document.getElementById('gridKW');
+  const solarAmountEl = document.getElementById('solarAmount');
+  const gridAmountEl = document.getElementById('gridAmount');
+  const totalAmountEl = document.getElementById('totalAmount');
+  const enterBtn = document.getElementById('enterBtn');
+  const overlay = document.getElementById('overlay');
+  const popup = document.querySelector('.popup');
+  const qrWrap = document.getElementById('qrCanvasWrap');
+  const confirmPay = document.getElementById('confirmPay');
+  const cancelPay = document.getElementById('cancelPay');
+  const chargingAnimationWindow = document.getElementById('chargingAnimationWindow');
+  const chargingArea = document.getElementById('chargingArea');
+  const meterFill = document.getElementById('meterFill');
+  const dashSolar = document.getElementById('dashSolar');
+  const dashGrid = document.getElementById('dashGrid');
+  const chargingPower = document.getElementById('chargingPower');
+  const timeLeft = document.getElementById('timeLeft');
+  const chargerStatus = document.getElementById('chargerStatus');
+  const finalDashboard = document.getElementById('finalDashboard');
+  const delivered = document.getElementById('delivered');
+  const avgSplit = document.getElementById('avgSplit');
+  const totalCost = document.getElementById('totalCost');
+  const loading = document.getElementById('loading');
+  const themeToggle = document.getElementById('themeToggle');
+  const solarStorageValue = document.getElementById('solarStorageValue');
+  const floatingParticles = document.getElementById('floatingParticles');
+  const completionScreen = document.getElementById('completionScreen');
+  const carbonSavings = document.getElementById('carbonSavings');
+  const restartBtn = document.getElementById('restartBtn');
+  const bgImages = document.getElementById('bgImages');
+  const chargingEffects = document.getElementById('chargingEffects');
+  const geometricBg = document.getElementById('geometricBg');
+
+  // Charging Animation Elements
+  const stage1 = document.getElementById('stage1');
+  const stage2 = document.getElementById('stage2');
+  const stage3 = document.getElementById('stage3');
+  const flipper = document.getElementById('flipper');
+  const chargeBar = document.getElementById('charge');
+
+  // Configuration
+  let currentKW = parseInt(kwRange.value, 10);
+  let maxKilowatts = 15; // Maximum kW the vehicle can accept
+  let solarRate = 5.0; // ₹/kWh (40% less than grid)
+  let gridRate = 8.0;  // ₹/kWh
+  let deliveredEnergy = 0;
+  let solarStorage = 30; // Initial solar energy stored in kW
+  let requiredKilowatts = 0;
+  let bgImageInterval;
+
+  // Create floating particles for background
+  function createParticles() {
+    for (let i = 0; i < 20; i++) {
+      const particle = document.createElement('div');
+      particle.classList.add('particle');
+      const size = Math.random() * 6 + 2;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.left = `${Math.random() * 100}%`;
+      particle.style.top = `${Math.random() * 100}%`;
+      particle.style.animationDelay = `${Math.random() * 15}s`;
+      floatingParticles.appendChild(particle);
+    }
+  }
+
+  // Create geometric background patterns
+  function createGeometricBackground() {
+    for (let i = 0; i < 15; i++) {
+      const shape = document.createElement('div');
+      shape.classList.add('geometric-shape');
+      const size = Math.random() * 80 + 20;
+      shape.style.width = `${size}px`;
+      shape.style.height = `${size}px`;
+      shape.style.left = `${Math.random() * 100}%`;
+      shape.style.top = `${Math.random() * 100}%`;
+      shape.style.animationDelay = `${Math.random() * 20}s`;
+      shape.style.background = `rgba(${Math.random() * 100}, ${Math.random() * 100}, ${Math.random() * 100}, 0.1)`;
+      geometricBg.appendChild(shape);
+    }
+  }
+
+  // Background image transitions
+  function startBackgroundImageTransitions() {
+    const images = bgImages.querySelectorAll('.bg-image');
+    if (images.length === 0) return;
+    
+    let currentIndex = 0;
+    
+    // Show first image
+    if (images.length > 0) {
+      images[0].classList.add('active');
+    }
+    
+    bgImageInterval = setInterval(() => {
+      // Remove active class from current image
+      images[currentIndex].classList.remove('active');
+      
+      // Move to next image
+      currentIndex = (currentIndex + 1) % images.length;
+      
+      // Add active class to next image
+      images[currentIndex].classList.add('active');
+    }, 5000); // Change image every 5 seconds
+  }
+
+  // Theme toggle functionality
+  themeToggle.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+  });
+
+  // Update solar storage display
+  function updateSolarStorage(usedKW) {
+    solarStorage = Math.max(0, solarStorage - usedKW);
+    solarStorageValue.textContent = `${solarStorage.toFixed(1)} kW`;
+  }
+
+  // Calculate carbon savings (simplified calculation)
+  function calculateCarbonSavings(kWh) {
+    // Average grid electricity produces about 0.5 kg CO2 per kWh
+    // Solar produces 0 kg CO2
+    // So savings = kWh * 0.5 kg
+    return (kWh * 0.5).toFixed(1);
+  }
+
+  // Calculate and update display values
+  function computeAndRender(kw) {
+    // Ensure kW doesn't exceed vehicle's required capacity
+    if (kw > requiredKilowatts) {
+      kw = requiredKilowatts;
+      kwRange.value = requiredKilowatts;
+    }
+    
+    // Calculate energy split based on available solar storage
+    let solar_kW, grid_kW;
+    
+    if (kw <= solarStorage) {
+      // If solar storage is enough for the requested kW, use only solar
+      solar_kW = kw;
+      grid_kW = 0;
+    } else {
+      // If solar storage is not enough, use all available solar and supplement with grid
+      solar_kW = solarStorage;
+      grid_kW = kw - solarStorage;
+    }
+    
+    // Amounts (assume they represent energy * 1 hour for demo)
+    let solarAmt = +(solar_kW * solarRate).toFixed(2);
+    let gridAmt = +(grid_kW * gridRate).toFixed(2);
+    let total = +(solarAmt + gridAmt).toFixed(2);
+
+    kwValue.innerText = kw + " kW";
+    solarKW.innerText = solar_kW + " kW";
+    gridKW.innerText = grid_kW + " kW";
+    solarAmountEl.innerText = "₹" + solarAmt.toFixed(2);
+    gridAmountEl.innerText = "₹" + gridAmt.toFixed(2);
+    totalAmountEl.innerText = "₹" + total.toFixed(2);
+
+    // Store current calculation for later use
+    window._currentCalc = {kw, solar_kW, grid_kW, solarAmt, gridAmt, total};
+  }
+
+  // kW slider event listener
+  kwRange.addEventListener('input', (e) => {
+    currentKW = +e.target.value;
+    computeAndRender(currentKW);
+  });
+
+  // Start button click handler
+  bigStart.addEventListener('click', () => {
+    // Hide start screen
+    startScreen.classList.add('hidden');
+    
+    // Show welcome animation after a short delay
+    setTimeout(() => {
+      welcomeContainer.classList.add('active');
+      animateWelcomeText();
+    }, 500);
+  });
+
+  // Animate welcome text word by word
+  function animateWelcomeText() {
+    const words = welcomeText.querySelectorAll('.welcome-word');
+    let delay = 0;
+    
+    // Animate words in
+    words.forEach((word, index) => {
+      setTimeout(() => {
+        word.style.opacity = 1;
+        word.style.transform = 'translateX(0)';
+        word.style.transition = 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+      }, delay);
+      delay += 300;
+    });
+    
+    // Animate words out and show main interface
+    setTimeout(() => {
+      words.forEach((word, index) => {
+        setTimeout(() => {
+          word.style.opacity = 0;
+          word.style.transform = 'translateX(-100px)';
+        }, index * 200);
+      });
+      
+      // Show main interface after animation completes
+      setTimeout(() => {
+        welcomeContainer.classList.remove('active');
+        app.classList.add('active');
+        mainCard.classList.add('active');
+        chargePanel.classList.remove('hidden');
+        
+        // Set random required kW between 1 and maxKilowatts
+        requiredKilowatts = Math.floor(Math.random() * maxKilowatts) + 1;
+        requiredKW.textContent = `${requiredKilowatts} kW`;
+        maxKW.textContent = maxKilowatts;
+        kwRange.max = maxKilowatts;
+        kwRange.value = Math.min(requiredKilowatts, maxKilowatts);
+        currentKW = parseInt(kwRange.value, 10);
+        
+        computeAndRender(currentKW);
+      }, words.length * 200 + 500);
+    }, delay + 2000);
+  }
+
+  // Eject button handler
+  ejectBtn.addEventListener('click', () => {
+    chargerStatus.innerText = 'Charger ejected ✓';
+    ejectBtn.innerText = 'EJECTED';
+    ejectBtn.disabled = true;
+    ejectBtn.style.background = 'linear-gradient(90deg, rgba(0,0,0,0.2), rgba(0,0,0,0.1))';
+  });
+
+  // Enter/Pay button handler
+  enterBtn.addEventListener('click', () => {
+    // Only allow start if ejected
+    if (!ejectBtn.disabled) {
+      alert('Please eject charger from the station first.');
+      return;
+    }
+    
+    // Open payment overlay with generated QR and amount
+    const calc = window._currentCalc || {};
+    const total = (calc.total !== undefined) ? calc.total : 0.00;
+    document.getElementById('payAmountText').innerText = "₹" + total.toFixed(2);
+    generateQRPlaceholder("PAY:" + total.toFixed(2));
+    overlay.style.display = 'flex';
+    
+    // Animate popup in
+    setTimeout(() => {
+      popup.classList.add('active');
+    }, 50);
+  });
+
+  // Cancel payment handler
+  cancelPay.addEventListener('click', () => {
+    popup.classList.remove('active');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 300);
+  });
+
+  // Confirm payment handler
+  confirmPay.addEventListener('click', () => {
+    popup.classList.remove('active');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      // Simulate payment and start charging animation
+      chargerStatus.innerText = 'Payment received ✓';
+      startChargingAnimation();
+    }, 300);
+  });
+
+  // Generate QR code placeholder
+  function generateQRPlaceholder(text) {
+    // Draw a mosaic-ish QR placeholder canvas for demo
+    qrWrap.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    canvas.width = 220;
+    canvas.height = 220;
+    const ctx = canvas.getContext('2d');
+    
+    // Background
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(0, 0, 220, 220);
+    
+    // Draw random blocks resembling QR modules but deterministic by text
+    let seed = 0;
+    for (let i = 0; i < text.length; i++) seed += text.charCodeAt(i);
+    
+    function rnd() {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    }
+    
+    // Modules grid 21x21
+    const n = 21, size = Math.floor(200 / n), offset = 10;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        let r = rnd();
+        if (r > 0.6) {
+          // Color module
+          if (r > 0.95) ctx.fillStyle = '#333333';
+          else if (r > 0.8) ctx.fillStyle = '#000000';
+          else ctx.fillStyle = '#000000';
+          ctx.fillRect(offset + x * size, offset + y * size, size - 1, size - 1);
+        }
+      }
+    }
+    
+    // Center small logo
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(86, 86, 48, 48);
+    ctx.fillStyle = '#000000';
+    ctx.font = '700 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('₹' + text.split(':')[1], 110, 110);
+    qrWrap.appendChild(canvas);
+  }
+
+  // Start charging animation sequence
+  function startChargingAnimation() {
+    // Show charging animation window
+    chargingAnimationWindow.classList.add('active');
+    
+    // Step 1: Flip words smoothly every 1s
+    const words = ["SOLAR", "ENERGIES", "BATTERIES"];
+    let i = 0;
+    
+    const flipInterval = setInterval(()=>{
+      if(i<words.length){
+        flipper.className = "flipper flip-up";
+        setTimeout(()=> {
+          flipper.textContent = words[i];
+          flipper.className = "flipper show";
+        }, 500);
+        i++;
+      } else clearInterval(flipInterval);
+    },1000);
+
+    // Step 2: Show tick after 3s
+    setTimeout(()=>{
+      stage1.classList.remove("active");
+      stage2.classList.add("active");
+    },3000);
+
+    // Step 3: Show battery after 4s and start charging
+    setTimeout(()=>{
+      stage2.classList.remove("active");
+      stage3.classList.add("active");
+
+      setTimeout(()=>{
+        chargeBar.style.width="100%";
+      }, 500); // battery starts filling after slight delay
+    },4000);
+    
+    // After animation completes, show charging dashboard
+    setTimeout(() => {
+      chargingAnimationWindow.classList.remove('active');
+      beginCharging();
+    }, 8500);
+  }
+
+  // Begin charging process
+  function beginCharging() {
+    // Hide the main interface and show only charging dashboard
+    chargePanel.classList.add('hidden');
+    
+    // Show charging area
+    chargingArea.classList.add('active');
+    
+    // Show charging effects
+    chargingEffects.classList.add('active');
+    
+    // Get values
+    const calc = window._currentCalc || {};
+    const kw = calc.kw || currentKW;
+    const solar_kW = calc.solar_kW || 0;
+    const grid_kW = calc.grid_kW || 0;
+
+    // Update solar storage
+    updateSolarStorage(solar_kW);
+
+    dashSolar.innerText = solar_kW + " kW";
+    dashGrid.innerText = grid_kW + " kW";
+    chargingPower.innerText = (solar_kW + grid_kW).toFixed(2) + " kW";
+    chargerStatus.innerText = 'Charging';
+
+    // Compute duration (demo rule): 1 minute per kW -> seconds
+    let duration = Math.max(30, Math.round(kw * 60)); // seconds
+    let elapsed = 0;
+    const tick = 1; // sec
+
+    // Progress interval
+    const interval = setInterval(() => {
+      elapsed += tick;
+      const pct = Math.min(100, Math.round((elapsed / duration) * 100));
+      meterFill.style.width = pct + '%';
+      
+      // Time left display
+      const left = Math.max(0, duration - elapsed);
+      const mm = String(Math.floor(left / 60)).padStart(2, '0');
+      const ss = String(left % 60).padStart(2, '0');
+      timeLeft.innerText = mm + ':' + ss;
+      
+      // Small delivered tally
+      const deliveredNow = Math.round(((elapsed / duration) * (solar_kW + grid_kW)) * 100) / 100;
+      deliveredEnergy = deliveredNow; // Update for display
+
+      if (pct >= 100) {
+        clearInterval(interval);
+        chargerStatus.innerText = 'Charge Complete';
+        timeLeft.innerText = '00:00';
+        
+        // Hide charging effects
+        chargingEffects.classList.remove('active');
+        
+        // Update final dashboard
+        delivered.textContent = (solar_kW + grid_kW).toFixed(2) + " kWh";
+        avgSplit.textContent = `${solar_kW.toFixed(2)} / ${grid_kW.toFixed(2)} kW`;
+        totalCost.textContent = "₹" + (calc.total || 0).toFixed(2);
+        
+        // Show completion screen after a delay
+        setTimeout(() => {
+          chargingArea.classList.remove('active');
+          finalDashboard.classList.remove('hidden');
+          
+          // Calculate and display carbon savings
+          const totalEnergy = (solar_kW + grid_kW).toFixed(2);
+          const carbonSaved = calculateCarbonSavings(totalEnergy);
+          carbonSavings.textContent = `Carbon Emission Saved: ${carbonSaved} kg`;
+          
+          // Show completion screen
+          completionScreen.classList.add('active');
+        }, 2000);
+      }
+    }, tick * 1000);
+  }
+
+  // Restart button handler
+  restartBtn.addEventListener('click', () => {
+    // Reset the interface
+    completionScreen.classList.remove('active');
+    chargePanel.classList.remove('hidden');
+    chargingArea.classList.remove('active');
+    finalDashboard.classList.add('hidden');
+    
+    // Reset charging animation stages
+    stage1.classList.add('active');
+    stage2.classList.remove('active');
+    stage3.classList.remove('active');
+    chargeBar.style.width = "0%";
+    flipper.textContent = "SOLAR";
+    flipper.className = "flipper";
+    
+    // Reset values
+    ejectBtn.innerText = 'EJECT';
+    ejectBtn.disabled = false;
+    ejectBtn.style.background = 'linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01))';
+    chargerStatus.innerText = 'Ready to Start';
+    
+    // Reset solar storage
+    solarStorage = 30;
+    solarStorageValue.textContent = `${solarStorage} kW`;
+    
+    // Set new random required kW
+    requiredKilowatts = Math.floor(Math.random() * maxKilowatts) + 1;
+    requiredKW.textContent = `${requiredKilowatts} kW`;
+    kwRange.value = Math.min(requiredKilowatts, maxKilowatts);
+    currentKW = parseInt(kwRange.value, 10);
+    
+    computeAndRender(currentKW);
+  });
+
+  // Initialize
+  createParticles();
+  createGeometricBackground();
+  startBackgroundImageTransitions();
+</script>
+
+</body>
+</html>
